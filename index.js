@@ -65,6 +65,11 @@ const generateDummyLink = async () => {
 
 // Routes
 
+app.get('/', async (req, res) => {
+   return res.send('something went wrong');
+});
+
+
 // Show profile with all dummy links
 app.get('/profile', async (req, res, next) => {
   try {
