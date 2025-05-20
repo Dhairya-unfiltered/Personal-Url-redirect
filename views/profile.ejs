@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profile - Dummy Links</title>
+  <style>
+    table, th, td { border: 1px solid black; border-collapse: collapse; padding: 8px;}
+    input[type="text"] { width: 100%; }
+    button { padding: 5px 10px; }
+  </style>
+</head>
+<body>
+  <h1>Dummy Links</h1>
+
+  <button onclick="generateDummy()">Generate New Dummy Link</button>
+  <br><br>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Dummy Link</th>
+        <th>Actual Link (Editable)</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="linksBody">
+      <% urls.forEach(url => { %>
+        <tr data-dummylink="<%= url.dummylink %>">
+          <td><a href="/<%= url.dummylink %>" target="_blank"><%= url.dummylink %></a></td>
+          <td>
+            <input type="text" class="actual-link" value="<%= url.actuallink || '' %>" placeholder="Enter actual link">
+          </td>
+          <td>
+            <button onclick="saveActualLink('<%= url.dummylink %>', this)">Save</button>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <script>
+    async function generateDummy() {
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ urlname: 'Dummy Link' })
+      });
+
+      if(res.ok) {
+        location.reload();
+      } else {
+        alert('Failed to generate dummy link');
+      }
+    }
+
+    async function saveActualLink(dummylink, btn) {
+      const tr = btn.closest('tr');
+      const input = tr.querySelector('.actual-link');
+      const actuallink = input.value.trim();
+
+      const res = await fetch('/edit/' + dummylink, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ actuallink })
+      });
+
+      if(res.ok) {
+        alert('Actual link updated');
+      } else {
+        alert('Failed to update actual link');
+      }
+    }
+  </script>
+</body>
+</html>
