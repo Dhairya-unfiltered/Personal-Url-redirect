@@ -3,9 +3,23 @@
 <head>
   <title>Profile - Dummy Links</title>
   <style>
-    table, th, td { border: 1px solid black; border-collapse: collapse; padding: 8px;}
-    input[type="text"] { width: 100%; }
-    button { padding: 5px 10px; }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 6px;
+    }
+
+    button {
+      padding: 6px 12px;
+    }
   </style>
 </head>
 <body>
@@ -17,20 +31,30 @@
   <table>
     <thead>
       <tr>
-        <th>Dummy Link</th>
+        <th>Dummy URL</th>
         <th>Actual Link (Editable)</th>
-        <th>Action</th>
+        <th>Copy Dummy URL</th>
       </tr>
     </thead>
     <tbody id="linksBody">
       <% urls.forEach(url => { %>
         <tr data-dummylink="<%= url.dummylink %>">
-          <td><a href="/<%= url.dummylink %>" target="_blank"><%= url.dummylink %></a></td>
+          <!-- Column 1: Dummy link as anchor -->
+          <td>
+            <a href="/<%= url.dummylink %>" target="_blank">
+              https://xyz.vercel.app/<%= url.dummylink %>
+            </a>
+          </td>
+
+          <!-- Column 2: Actual link input and Save button -->
           <td>
             <input type="text" class="actual-link" value="<%= url.actuallink || '' %>" placeholder="Enter actual link">
-          </td>
-          <td>
             <button onclick="saveActualLink('<%= url.dummylink %>', this)">Save</button>
+          </td>
+
+          <!-- Column 3: Copy dummy URL button -->
+          <td>
+            <button onclick="copyToClipboard('https://zaxurl.vercel.app/<%= url.dummylink %>')">Copy URL</button>
           </td>
         </tr>
       <% }) %>
@@ -41,11 +65,11 @@
     async function generateDummy() {
       const res = await fetch('/generate', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ urlname: 'Dummy Link' })
       });
 
-      if(res.ok) {
+      if (res.ok) {
         location.reload();
       } else {
         alert('Failed to generate dummy link');
@@ -59,15 +83,26 @@
 
       const res = await fetch('/edit/' + dummylink, {
         method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ actuallink })
       });
 
-      if(res.ok) {
+      if (res.ok) {
         alert('Actual link updated');
       } else {
         alert('Failed to update actual link');
       }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          alert('URL copied to clipboard: ' + text);
+        })
+        .catch(err => {
+          alert('Failed to copy URL');
+          console.error(err);
+        });
     }
   </script>
 </body>
