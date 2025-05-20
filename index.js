@@ -3,19 +3,47 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const Url = require('./models/Url');
+
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+// MongoDB connection caching for serverless
+const MONGO_URI = process.env.MONGO_URI;
+let cached = global.mongoose;
 
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
-// Connect to MongoDB (change connection string if needed)
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.log(err));
+async function connectToDatabase() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    }).then(mongoose => {
+      return mongoose;
+    });
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+// Middleware to connect to DB on every request (only if not connected)
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Helper: generate unique dummy link
 const generateDummyLink = async () => {
@@ -38,13 +66,17 @@ const generateDummyLink = async () => {
 // Routes
 
 // Show profile with all dummy links
-app.get('/profile', async (req, res) => {
-  const urls = await Url.find().sort({ createdAt: -1 });
-  res.render('profile', { urls });
+app.get('/profile', async (req, res, next) => {
+  try {
+    const urls = await Url.find().sort({ createdAt: -1 });
+    res.render('profile', { urls });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Generate new dummy link
-app.post('/generate', async (req, res) => {
+app.post('/generate', async (req, res, next) => {
   try {
     const dummylink = await generateDummyLink();
 
@@ -57,12 +89,12 @@ app.post('/generate', async (req, res) => {
     await newUrl.save();
     res.status(201).json({ dummylink });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // Edit actual link for dummy link
-app.patch('/edit/:dummylink', async (req, res) => {
+app.patch('/edit/:dummylink', async (req, res, next) => {
   try {
     const { actuallink } = req.body;
     const updated = await Url.findOneAndUpdate(
@@ -77,24 +109,30 @@ app.patch('/edit/:dummylink', async (req, res) => {
 
     res.json({ message: 'Actual link updated', updated });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // Redirect dummy link to actual link
-app.get('/:dummylink', async (req, res) => {
+app.get('/:dummylink', async (req, res, next) => {
   try {
     const url = await Url.findOne({ dummylink: req.params.dummylink });
     if (!url) {
       return res.status(404).send('Link not found');
     }
     if (!url.actuallink) {
-      return res.status(400).send('something went wrong');//actual link not set yet
+      return res.status(400).send('Actual link not set yet');
     }
     res.redirect(url.actuallink);
   } catch (err) {
-    res.status(500).send(err.message);
+    next(err);
   }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack || err);
+  res.status(500).send('Internal Server Error');
 });
 
 module.exports = app;
