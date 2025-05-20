@@ -123,7 +123,7 @@ app.get('/:dummylink', async (req, res, next) => {
   try {
     const url = await Url.findOne({ dummylink: req.params.dummylink });
     if (!url) {
-      return res.status(404).send('Link not found');
+      return res.status(404).send('Something Went Wrong');
     }
     if (!url.actuallink) {
       return res.status(400).send('Something went wrong');
