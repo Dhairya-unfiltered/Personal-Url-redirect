@@ -126,7 +126,7 @@ app.get('/:dummylink', async (req, res, next) => {
       return res.status(404).send('Link not found');
     }
     if (!url.actuallink) {
-      return res.status(400).send('Actual link not set yet');
+      return res.status(400).send('Something went wrong');
     }
     res.redirect(url.actuallink);
   } catch (err) {
