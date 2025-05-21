@@ -1,109 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Profile - Dummy Links</title>
-  <style>
-    table, th, td {
-      border: 1px solid black;
-      border-collapse: collapse;
-      padding: 12px;
-      vertical-align: top;
-      text-align: left;
-    }
+<h1>Welcome <%= user.email %></h1>
+<a href="/editprofile">Edit profile</a>
+<br><br>
+<button onclick="generateDummy()">Generate Dummy Link</button>
 
-    input[type="text"] {
-      width: 100%;
-      padding: 6px;
-      margin-bottom: 6px;
-    }
+<table border="1">
+  <tr>
+    <th>Dummy Link</th>
+    <th>Actual Link + Save</th>
+    <th>Copy Button</th>
+  </tr>
+  <% urls.forEach(url => { %>
+    <tr>
+      <td>https://zaxurl.vercel.app/<%= url.dummylink %></td>
+      <td>
+        <input type="text" value="<%= url.actuallink || '' %>" id="input-<%= url._id %>">
+        <button onclick="saveLink('<%= url.dummylink %>', '<%= url._id %>')">Save</button>
+      </td>
+      <td>
+        <button onclick="copyToClipboard('https://zaxurl.vercel.app/<%= url.dummylink %>')">Copy</button>
+      </td>
+    </tr>
+  <% }) %>
+</table>
 
-    button {
-      padding: 6px 12px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Dummy Links</h1>
+<script>
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+  }
 
-  <button onclick="generateDummy()">Generate New Dummy Link</button>
-  <br><br>
+  async function saveLink(dummylink, id) {
+    const value = document.getElementById("input-" + id).value;
+    await fetch("/edit/" + dummylink, {
+      method: "PATCH",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actuallink: value })
+    });
+    alert("Saved");
+  }
 
-  <table>
-    <thead>
-      <tr>
-        <th>Dummy URL</th>
-        <th>Actual Link (Editable)</th>
-        <th>Copy Dummy URL</th>
-      </tr>
-    </thead>
-    <tbody id="linksBody">
-      <% urls.forEach(url => { %>
-        <tr data-dummylink="<%= url.dummylink %>">
-          <!-- Column 1: Dummy link as anchor -->
-          <td>
-            <a href="/<%= url.dummylink %>" target="_blank">
-              https://xyz.vercel.app/<%= url.dummylink %>
-            </a>
-          </td>
-
-          <!-- Column 2: Actual link input and Save button -->
-          <td>
-            <input type="text" class="actual-link" value="<%= url.actuallink || '' %>" placeholder="Enter actual link">
-            <button onclick="saveActualLink('<%= url.dummylink %>', this)">Save</button>
-          </td>
-
-          <!-- Column 3: Copy dummy URL button -->
-          <td>
-            <button onclick="copyToClipboard('https://zaxurl.vercel.app/<%= url.dummylink %>')">Copy URL</button>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-
-  <script>
-    async function generateDummy() {
-      const res = await fetch('/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urlname: 'Dummy Link' })
-      });
-
-      if (res.ok) {
-        location.reload();
-      } else {
-        alert('Failed to generate dummy link');
-      }
-    }
-
-    async function saveActualLink(dummylink, btn) {
-      const tr = btn.closest('tr');
-      const input = tr.querySelector('.actual-link');
-      const actuallink = input.value.trim();
-
-      const res = await fetch('/edit/' + dummylink, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actuallink })
-      });
-
-      if (res.ok) {
-        alert('Actual link updated');
-      } else {
-        alert('Failed to update actual link');
-      }
-    }
-
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text)
-        .then(() => {
-          alert('URL copied to clipboard: ' + text);
-        })
-        .catch(err => {
-          alert('Failed to copy URL');
-          console.error(err);
-        });
-    }
-  </script>
-</body>
-</html>
+  async function generateDummy() {
+    await fetch("/generate", { method: "POST" });
+    location.reload();
+  }
+</script>
