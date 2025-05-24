@@ -1,45 +1,861 @@
-<h1>Welcome <%= user.email %></h1>
-<a href="/editprofile">Edit profile</a>
-<br><br>
-<button onclick="generateDummy()">Generate Dummy Link</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Clutch Link Dashboard</title>
+  <style>
+    :root {
+      --primary: #ffffff;
+      --primary-hover: #f8f9fa;
+      --secondary: #6c757d;
+      --accent: #495057;
+      
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --bg-hover: #30363d;
+      
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --text-muted: #656d76;
+      
+      --border: #30363d;
+      --border-light: #21262d;
+      
+      --success: #238636;
+      --success-hover: #2ea043;
+      --danger: #da3633;
+      --danger-hover: #f85149;
+      
+      --border-radius: 6px;
+      --border-radius-lg: 8px;
+      --shadow: 0 8px 24px rgba(1, 4, 9, 0.15);
+      --shadow-sm: 0 1px 3px rgba(1, 4, 9, 0.12);
+      --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-<table border="1">
-  <tr>
-    <th>Dummy Link</th>
-    <th>Actual Link + Save</th>
-    <th>Copy Button</th>
-  </tr>
-  <% urls.forEach(url => { %>
-    <tr>
-      <td>https://zaxurl.vercel.app/<%= url.dummylink %></td>
-      <td>
-        <input type="text" value="<%= url.actuallink || '' %>" id="input-<%= url._id %>">
-        <button onclick="saveLink('<%= url.dummylink %>', '<%= url._id %>')">Save</button>
-      </td>
-      <td>
-        <button onclick="copyToClipboard('https://zaxurl.vercel.app/<%= url.dummylink %>')">Copy</button>
-      </td>
-    </tr>
-  <% }) %>
-</table>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-<script>
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => alert("Copied!"));
-  }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-size: 16px;
+    }
 
-  async function saveLink(dummylink, id) {
-    const value = document.getElementById("input-" + id).value;
-    await fetch("/edit/" + dummylink, {
-      method: "PATCH",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actuallink: value })
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+    }
+
+    .brand {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid transparent;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      white-space: nowrap;
+      user-select: none;
+      min-height: 40px;
+      min-width: 40px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.8125rem;
+      min-height: 36px;
+    }
+
+    .btn-xs {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--bg-primary);
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--accent);
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background-color: var(--danger-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(218, 54, 51, 0.3);
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background-color: var(--success-hover);
+    }
+
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--text-secondary);
+      border-color: transparent;
+      padding: 0.375rem;
+    }
+
+    .btn-ghost:hover {
+      background-color: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .btn-copy {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      font-weight: 500;
+    }
+
+    .btn-copy:hover {
+      background-color: var(--bg-hover);
+      color: var(--primary);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-delete {
+      background-color: var(--danger);
+      color: white;
+      border: 1px solid var(--danger);
+      padding: 0.5rem 0.75rem;
+      font-weight: 500;
+    }
+
+    .btn-delete:hover {
+      background-color: var(--danger-hover);
+      border-color: var(--danger-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(218, 54, 51, 0.3);
+    }
+
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--border-radius-lg);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .card-subtitle {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th,
+    .table td {
+      padding: 1rem 1.5rem;
+      text-align: left;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .table th {
+      background-color: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+
+    .table tbody tr:hover {
+      background-color: var(--bg-hover);
+    }
+
+    .table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--border-radius);
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      transition: var(--transition);
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background-color: var(--bg-hover);
+    }
+
+    .input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .link-display {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      padding: 0.375rem 0.75rem;
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--border-radius);
+      transition: var(--transition);
+      display: inline-block;
+      word-break: break-all;
+    }
+
+    .link-display:hover {
+      color: var(--primary);
+      border-color: var(--accent);
+      background-color: var(--bg-hover);
+    }
+
+    .url-preview {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      word-break: break-all;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.8125rem;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-active .status-dot {
+      background-color: var(--success);
+    }
+
+    .status-inactive .status-dot {
+      background-color: var(--text-muted);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state h3 {
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .empty-state p {
+      font-size: 0.875rem;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 0.75rem 1rem;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      font-size: 0.875rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: var(--transition);
+      z-index: 1000;
+      max-width: calc(100% - 3rem);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background-color: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .toast.error {
+      background-color: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2;
+    }
+
+    .icon-sm {
+      width: 14px;
+      height: 14px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+
+    .row-deleting {
+      opacity: 0.5;
+      transform: scale(0.98);
+      transition: all 0.3s ease;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 1024px) {
+      .container {
+        padding: 0 1rem;
+      }
+      
+      .header {
+        padding: 1.5rem 0;
+      }
+      
+      .table th, 
+      .table td {
+        padding: 0.75rem 1rem;
+      }
+      
+      .actions {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 0 0.5rem;
+      }
+      
+      .header {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem 0;
+        align-items: stretch;
+      }
+      
+      .header-actions {
+        order: -1;
+        justify-content: space-between;
+        width: 100%;
+      }
+      
+      .btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0.75rem;
+      }
+      
+      .btn-sm {
+        min-height: 44px;
+        padding: 0.5rem;
+      }
+      
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 1rem;
+      }
+      
+      .table, .table thead, .table tbody, .table th, .table td, .table tr {
+        display: block;
+      }
+      
+      .table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+      
+      .table tr {
+        border: 1px solid var(--border-light);
+        border-radius: var(--border-radius);
+        margin-bottom: 0.75rem;
+        padding: 0.75rem;
+      }
+      
+      .table td {
+        border: none;
+        padding: 0.5rem 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+      
+      .table td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.25rem;
+      }
+      
+      .input-group {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+      }
+      
+      .input {
+        padding: 0.75rem;
+        font-size: 1rem;
+      }
+      
+      .actions {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+        width: 100%;
+      }
+      
+      .actions .btn {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      
+      .empty-state {
+        padding: 2rem 1rem;
+      }
+      
+      .empty-state h3 {
+        font-size: 1.125rem;
+      }
+      
+      .empty-state p {
+        font-size: 0.9375rem;
+      }
+      
+      .toast {
+        bottom: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+        width: auto;
+        max-width: none;
+      }
+
+      /* Profile button becomes icon-only on mobile */
+      .btn-secondary span {
+        display: none;
+      }
+      .btn-secondary .icon {
+        margin-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="brand">Clutch Link</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="generateDummy()" id="generateBtn">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          New Link
+        </button>
+        <a href="/editprofile" class="btn btn-secondary">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Profile</span>
+        </a>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Your Links</h2>
+        <div class="card-subtitle" id="linkStats"></div>
+      </div>
+      
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Dummy Link</th>
+            <th>Actual Link</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (urls.length > 0) { %>
+            <% urls.forEach(url => { %>
+              <tr id="row-<%= url._id %>">
+                <td data-label="Dummy Link">
+                  <a href="https://zaxurl.vercel.app/<%= url.dummylink %>" target="_blank" class="link-display">
+                    zaxurl.vercel.app/<%= url.dummylink %>
+                  </a>
+                </td>
+                <td data-label="Destination">
+                  <div class="input-group">
+                    <input type="text" class="input" value="<%= url.actuallink || '' %>" id="input-<%= url._id %>" placeholder="Enter destination URL">
+                    <button class="btn btn-success btn-sm" onclick="saveLink('<%= url.dummylink %>', '<%= url._id %>')" title="Save">
+                      <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+                <td data-label="Status">
+                  <div class="status <%= url.actuallink ? 'status-active' : 'status-inactive' %>">
+                    <div class="status-dot"></div>
+                    <%= url.actuallink ? 'Active' : 'Inactive' %>
+                  </div>
+                </td>
+                <td data-label="Actions">
+                  <div class="actions">
+                    <button class="btn btn-copy" onclick="copyToClipboard('https://zaxurl.vercel.app/<%= url.dummylink %>')" title="Copy Link">
+                      <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                      </svg>
+                      Copy
+                    </button>
+                    <button class="btn btn-delete" onclick="deleteDummy('<%= url.dummylink %>', '<%= url._id %>')" title="Delete Link">
+                      <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" class="empty-state">
+                <h3>No links created yet</h3>
+                <p>Click on "Generate Link" to get your first dummy link</p>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // Toast notification system
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Update link statistics display
+    function updateLinkStats() {
+      const visibleRows = document.querySelectorAll('tbody tr[id*="row-"]:not(.row-deleting)');
+      const totalLinks = visibleRows.length;
+      const activeLinks = document.querySelectorAll('.status-active').length;
+      
+      if (totalLinks > 0) {
+        document.getElementById('linkStats').textContent = 
+          `${totalLinks} total • ${activeLinks} active`;
+      } else {
+        document.getElementById('linkStats').textContent = '';
+      }
+    }
+
+    // Copy to clipboard functionality
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard!', 'success');
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      }
+    }
+
+    // Save link destination
+    async function saveLink(dummylink, id) {
+      const input = document.getElementById("input-" + id);
+      const value = input.value.trim();
+      
+      if (!value) {
+        showToast('Please enter a URL', 'error');
+        input.focus();
+        return;
+      }
+      
+      // Ensure URL has protocol
+      let processedValue = value;
+      if (!value.startsWith('http://') && !value.startsWith('https://')) {
+        processedValue = 'https://' + value;
+        if (confirm('URL should start with http:// or https://. Add https:// automatically?')) {
+          input.value = processedValue;
+        } else {
+          return;
+        }
+      }
+      
+      try {
+        const response = await fetch("/edit/" + dummylink, {
+          method: "PATCH",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actuallink: processedValue })
+        });
+        
+        if (response.ok) {
+          showToast('Link saved successfully!', 'success');
+          
+          // Update status indicator
+          const row = input.closest('tr');
+          const statusCell = row.querySelector('[data-label="Status"] .status, .status');
+          statusCell.className = 'status status-active';
+          statusCell.innerHTML = '<div class="status-dot"></div>Active';
+          
+          updateLinkStats();
+        } else {
+          throw new Error('Failed to save');
+        }
+      } catch (error) {
+        showToast('Error saving link', 'error');
+      }
+    }
+
+    // Generate new dummy link
+    async function generateDummy() {
+      const btn = document.getElementById('generateBtn');
+      const originalContent = btn.innerHTML;
+      
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="icon spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+      </svg> Creating...`;
+      
+      try {
+        const response = await fetch("/generate", { method: "POST" });
+        if (response.ok) {
+          showToast('Link created successfully!', 'success');
+          setTimeout(() => location.reload(), 200);
+        } else {
+          throw new Error('Generation failed');
+        }
+      } catch (error) {
+        showToast('Failed to create link', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+      }
+    }
+
+    // Delete dummy link
+    async function deleteDummy(dummylink, id) {
+      const row = document.getElementById('row-' + id);
+      
+      if (!confirm('Are you sure you want to delete this link?')) {
+        return;
+      }
+      
+      // Visual feedback
+      row.classList.add('row-deleting');
+      showToast('Deleting...', 'info');
+
+      try {
+        const response = await fetch('/delete/' + dummylink, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          // Remove the row after animation
+          setTimeout(() => {
+            row.remove();
+            updateLinkStats();
+            showToast('Link deleted successfully!', 'success');
+          }, 200);
+        } else {
+          // Restore if delete failed
+          row.classList.remove('row-deleting');
+          throw new Error('Delete failed');
+        }
+      } catch (error) {
+        row.classList.remove('row-deleting');
+        showToast('Failed to delete link', 'error');
+      }
+    }
+
+    // Mobile behavior setup
+    function setupMobileBehavior() {
+      // Prevent zoom on focus for inputs on mobile
+      if ('maxTouchPoints' in navigator && navigator.maxTouchPoints > 0) {
+        const inputs = document.querySelectorAll('input, textarea, select');
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        
+        inputs.forEach(input => {
+          input.addEventListener('focus', () => {
+            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+          });
+          
+          input.addEventListener('blur', () => {
+            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+          });
+        });
+      }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Escape blurs current element
+      if (e.key === 'Escape') {
+        document.activeElement.blur();
+      }
+      
+      // Ctrl+Enter or Cmd+Enter saves the current input
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && e.target.type === 'text') {
+        const input = e.target;
+        const saveBtn = input.parentNode.querySelector('.btn-success');
+        if (saveBtn) saveBtn.click();
+      }
     });
-    alert("Saved");
-  }
 
-  async function generateDummy() {
-    await fetch("/generate", { method: "POST" });
-    location.reload();
-  }
-</script>
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      updateLinkStats();
+      setupMobileBehavior();
+    });
+  </script>
+</body>
+</html>

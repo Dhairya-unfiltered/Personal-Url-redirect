@@ -26,7 +26,6 @@ app.use(session({
   store: MongoStore.create({ mongoUrl: process.env.MONGO_URI })
 }));
 
-// Nodemailer transporter
 const transporter = nodemailer.createTransport({
   service: 'Gmail',
   auth: {
@@ -35,7 +34,6 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Middleware
 const requireLogin = async (req, res, next) => {
   if (!req.session.userId) return res.redirect('/login');
   const user = await User.findById(req.session.userId);
@@ -44,7 +42,6 @@ const requireLogin = async (req, res, next) => {
   next();
 };
 
-// Auth Routes
 app.get('/register', (req, res) => res.render('register'));
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -70,8 +67,6 @@ app.get('/verify/:token', async (req, res) => {
   await user.save();
   res.send('Email verified. You can <a href="/login">login now</a>.');
 });
-
-
 
 app.get('/', (req, res) => res.redirect('login'));
 
@@ -169,6 +164,23 @@ app.patch('/edit/:dummylink', requireLogin, async (req, res) => {
   url.actuallink = req.body.actuallink;
   await url.save();
   res.sendStatus(200);
+});
+
+// Delete dummy URL
+app.delete('/delete/:dummylink', requireLogin, async (req, res) => {
+  try {
+    const dummylink = req.params.dummylink;
+    const url = await Url.findOneAndDelete({ dummylink, owner: req.user._id });
+    if (!url) return res.status(404).send('Dummy URL not found or not owned by you.');
+
+    req.user.urls = req.user.urls.filter(u => u.toString() !== url._id.toString());
+    await req.user.save();
+
+    res.send('Dummy URL deleted successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error.');
+  }
 });
 
 app.get('/:dummylink', async (req, res) => {
